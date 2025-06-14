@@ -1,232 +1,288 @@
-body {
-    font-family: 'Arial', sans-serif;
-    background-color: #1a1a2e; /* Fondo oscuro similar a un stream */
-    color: #e0e0e0; /* Texto claro */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-x: hidden; /* Evitar scroll horizontal por la ruleta */
+const playerInput = document.getElementById('playerInput');
+const addPlayerBtn = document.getElementById('addPlayerBtn');
+const playerListUl = document.getElementById('playerList');
+const clearPlayersBtn = document.getElementById('clearPlayersBtn');
+const modeButtons = document.querySelectorAll('.mode-button');
+const teamsDisplay = document.getElementById('teamsDisplay');
+const resultWarning = document.querySelector('.result-warning');
+const rouletteWheel = document.getElementById('rouletteWheel');
+const spinBtn = document.getElementById('spinBtn');
+const spinResultDisplay = document.getElementById('spinResult');
+
+let players = []; // Array para almacenar los IDs de los jugadores
+let remainingPlayersForSpin = []; // Copia para la ruleta
+let currentModePlayersPerTeam = 0; // Para saber cuántos jugadores por equipo necesitamos
+let currentTeamBeingFormed = 0; // Para llevar la cuenta de qué equipo se está formando
+let currentTeamMembers = []; // Para almacenar los miembros del equipo actual
+let teamsFormed = []; // Para almacenar todos los equipos finales
+
+const colors = ['#bd1e51', '#50fa7b', '#8be9fd', '#ffcc00', '#ff7f50', '#a020f0']; // Colores para los segmentos
+
+// --- Funciones para gestionar la lista de jugadores ---
+
+function addPlayer() {
+    const playerName = playerInput.value.trim();
+    if (playerName && !players.includes(playerName)) {
+        players.push(playerName);
+        renderPlayerList();
+        playerInput.value = '';
+        resultWarning.style.display = 'none';
+        spinBtn.style.display = 'none'; // Ocultar botón girar si se añade jugador después de elegir modo
+        teamsDisplay.innerHTML = ''; // Limpiar equipos anteriores
+        spinResultDisplay.textContent = '';
+        rouletteWheel.innerHTML = ''; // Limpiar segmentos de ruleta
+        resetGameVariables();
+    } else if (players.includes(playerName)) {
+        alert('¡Ese ID ya está en la lista!');
+    }
 }
 
-.container {
-    background-color: #2a2a4a; /* Contenedor más claro */
-    border-radius: 10px;
-    padding: 30px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    text-align: center;
-    width: 100%;
-    max-width: 700px;
+function renderPlayerList() {
+    playerListUl.innerHTML = '';
+    players.forEach((player, index) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = player;
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'X';
+        removeButton.onclick = () => removePlayer(index);
+        listItem.appendChild(removeButton);
+        playerListUl.appendChild(listItem);
+    });
 }
 
-h1, h2 {
-    color: #8be9fd; /* Azul claro para títulos */
-    margin-bottom: 20px;
+function removePlayer(index) {
+    players.splice(index, 1);
+    renderPlayerList();
+    spinBtn.style.display = 'none'; // Ocultar botón girar si se elimina jugador después de elegir modo
+    teamsDisplay.innerHTML = ''; // Limpiar equipos anteriores
+    spinResultDisplay.textContent = '';
+    rouletteWheel.innerHTML = ''; // Limpiar segmentos de ruleta
+    resetGameVariables();
 }
 
-.input-section, .mode-selection-section, .players-list-section, .results-section, .roulette-section {
-    margin-bottom: 30px;
-    border: 1px solid #444466;
-    border-radius: 8px;
-    padding: 20px;
-    background-color: #3a3a5a;
+function clearPlayers() {
+    if (confirm('¿Estás seguro de que quieres limpiar la lista de jugadores?')) {
+        players = [];
+        renderPlayerList();
+        teamsDisplay.innerHTML = '';
+        resultWarning.style.display = 'none';
+        spinBtn.style.display = 'none';
+        spinResultDisplay.textContent = '';
+        rouletteWheel.innerHTML = '';
+        resetGameVariables();
+    }
 }
 
-input[type="text"] {
-    padding: 12px 15px;
-    border: none;
-    border-radius: 5px;
-    margin-right: 10px;
-    background-color: #1f1f3f;
-    color: #e0e0e0;
-    width: calc(70% - 20px);
-    box-sizing: border-box;
+function resetGameVariables() {
+    remainingPlayersForSpin = [];
+    currentModePlayersPerTeam = 0;
+    currentTeamBeingFormed = 0;
+    currentTeamMembers = [];
+    teamsFormed = [];
+    displayTeams(teamsFormed); // Limpia la visualización de equipos
 }
 
-button {
-    background-color: #bd1e51; /* Rojo vibrante */
-    color: white;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+// --- Lógica de la Ruleta Gráfica y Formación de Equipos ---
+
+function generateRouletteWheel() {
+    rouletteWheel.innerHTML = ''; // Limpiar segmentos anteriores
+    if (remainingPlayersForSpin.length === 0) {
+        spinBtn.style.display = 'none';
+        return;
+    }
+
+    const segmentCount = remainingPlayersForSpin.length;
+    const segmentAngle = 360 / segmentCount;
+    const skewY = 90 - segmentAngle; // Ángulo para 'aplastar' el triángulo
+
+    remainingPlayersForSpin.forEach((player, index) => {
+        const segment = document.createElement('div');
+        segment.className = 'roulette-segment';
+        segment.textContent = player;
+        
+        // Calcular ángulo y color para cada segmento
+        const rotation = index * segmentAngle;
+        segment.style.setProperty('--angle', `${rotation}deg`);
+        segment.style.setProperty('--skew', `${skewY}deg`);
+        segment.style.backgroundColor = colors[index % colors.length]; // Ciclo de colores
+
+        rouletteWheel.appendChild(segment);
+    });
+
+    spinBtn.style.display = 'block'; // Mostrar el botón de girar
 }
 
-button:hover {
-    background-color: #e63946;
-}
+async function spinRoulette() {
+    if (remainingPlayersForSpin.length === 0) {
+        spinResultDisplay.textContent = 'No hay más jugadores para seleccionar.';
+        spinBtn.style.display = 'none';
+        return;
+    }
 
-.mode-button {
-    background-color: #50fa7b; /* Verde para los modos */
-    margin: 5px;
-}
+    spinBtn.disabled = true; // Deshabilitar botón durante el giro
 
-.mode-button:hover {
-    background-color: #69f0ae;
-}
+    const selectedIndex = Math.floor(Math.random() * remainingPlayersForSpin.length);
+    const selectedPlayer = remainingPlayersForSpin[selectedIndex];
 
-.clear-button {
-    background-color: #ff7f50; /* Naranja para limpiar */
-    margin-top: 15px;
-}
+    // Calcula el ángulo de giro final para que el puntero apunte al jugador seleccionado
+    // Asegura que gire varias veces (ej: 5 vueltas completas) + el ángulo exacto.
+    const totalRotation = (360 * 5) + (360 - (selectedIndex * (360 / remainingPlayersForSpin.length) + (360 / remainingPlayersForSpin.length) / 2));
+    
+    rouletteWheel.style.transition = 'transform 4s cubic-bezier(0.2, 0.9, 0.3, 1)';
+    rouletteWheel.style.transform = `rotate(${totalRotation}deg)`;
 
-.clear-button:hover {
-    background-color: #ffa07a;
-}
+    spinResultDisplay.textContent = 'Girando...';
 
-.spin-button {
-    background-color: #bd1e51; /* Rojo vibrante para el botón de girar */
-    margin-top: 20px;
-    padding: 15px 30px;
-    font-size: 1.2em;
-}
+    // Esperar a que la animación termine
+    await new Promise(resolve => setTimeout(resolve, 4000)); 
+    
+    spinResultDisplay.textContent = `¡Seleccionado: ${selectedPlayer}!`;
 
-.spin-button:hover {
-    background-color: #e63946;
-}
+    // Añadir al jugador al equipo actual
+    currentTeamMembers.push(selectedPlayer);
+    
+    // Eliminar jugador de la lista de pendientes para la ruleta
+    remainingPlayersForSpin.splice(selectedIndex, 1);
 
+    // Actualizar la visualización de equipos
+    updateTeamDisplay();
 
-ul {
-    list-style: none;
-    padding: 0;
-    max-height: 200px;
-    overflow-y: auto;
-    background-color: #1f1f3f;
-    border-radius: 5px;
-    margin-top: 15px;
-}
-
-ul li {
-    padding: 10px 15px;
-    border-bottom: 1px solid #444466;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-ul li:last-child {
-    border-bottom: none;
-}
-
-ul li button {
-    background-color: #e74c3c; /* Rojo para eliminar */
-    padding: 5px 10px;
-    font-size: 14px;
-    margin-left: 10px;
-}
-
-ul li button:hover {
-    background-color: #c0392b;
-}
-
-.mode-warning, .result-warning, .spin-result {
-    color: #ffcc00; /* Amarillo de advertencia/resultado */
-    font-weight: bold;
-    margin-top: 10px;
-}
-.spin-result {
-    font-size: 1.5em;
-    color: #50fa7b; /* Verde para el resultado del giro */
+    // Reiniciar la ruleta para el siguiente giro
+    rouletteWheel.style.transition = 'none'; // Quitar transición para reseteo instantáneo
+    rouletteWheel.style.transform = 'rotate(0deg)'; // Resetear a la posición original antes de regenerar
+    setTimeout(() => { // Pequeño retraso para que el navegador aplique el reset
+        generateRouletteWheel(); // Regenera los segmentos con los jugadores restantes
+        spinBtn.disabled = false; // Habilitar botón para el siguiente giro
+        if (remainingPlayersForSpin.length === 0) {
+            spinResultDisplay.textContent = '¡Todos los jugadores han sido asignados!';
+            spinBtn.style.display = 'none';
+        }
+    }, 50);
 }
 
 
-#teamsDisplay {
-    margin-top: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 20px;
+function startTeamFormation(playersPerTeam) {
+    currentModePlayersPerTeam = playersPerTeam;
+    currentTeamBeingFormed = 1;
+    currentTeamMembers = [];
+    teamsFormed = []; // Limpiar equipos formados anteriormente
+    teamsDisplay.innerHTML = ''; // Limpiar display de equipos
+
+    if (players.length < playersPerTeam) {
+        resultWarning.textContent = `¡Necesitas al menos ${playersPerTeam} jugadores para el modo ${playersPerTeam}v${playersPerTeam}!`;
+        resultWarning.style.display = 'block';
+        spinBtn.style.display = 'none';
+        rouletteWheel.innerHTML = '';
+        spinResultDisplay.textContent = '';
+        return;
+    }
+    resultWarning.style.display = 'none';
+    
+    // Copiar la lista original de jugadores y mezclarla
+    remainingPlayersForSpin = shuffleArray([...players]); 
+    generateRouletteWheel(); // Genera la ruleta con todos los jugadores disponibles
+    spinResultDisplay.textContent = `Gira para el Equipo ${currentTeamBeingFormed}. Jugadores restantes: ${remainingPlayersForSpin.length}`;
 }
 
-.team-box {
-    background-color: #1f1f3f;
-    border: 2px solid #8be9fd; /* Cambiado a azul claro */
-    border-radius: 8px;
-    padding: 15px;
-    min-width: 150px;
-    max-width: 200px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+function updateTeamDisplay() {
+    if (currentTeamMembers.length === currentModePlayersPerTeam || remainingPlayersForSpin.length === 0) {
+        // Si el equipo actual está completo o no quedan más jugadores, añadirlo a los equipos formados
+        if (currentTeamMembers.length > 0) {
+            teamsFormed.push([...currentTeamMembers]); // Añadir una copia del equipo
+        }
+        currentTeamMembers = []; // Resetear para el siguiente equipo
+
+        displayTeams(teamsFormed); // Actualiza la visualización de todos los equipos
+
+        if (remainingPlayersForSpin.length > 0) {
+            currentTeamBeingFormed++;
+            spinResultDisplay.textContent = `Gira para el Equipo ${currentTeamBeingFormed}. Jugadores restantes: ${remainingPlayersForSpin.length}`;
+        } else {
+            spinResultDisplay.textContent = '¡Todos los jugadores han sido asignados a equipos!';
+            spinBtn.style.display = 'none';
+        }
+    } else {
+         spinResultDisplay.textContent = `Gira para el Equipo ${currentTeamBeingFormed}. Faltan ${currentModePlayersPerTeam - currentTeamMembers.length} jugador(es). Jugadores restantes: ${remainingPlayersForSpin.length}`;
+    }
 }
 
-.team-box h3 {
-    color: #50fa7b; /* Verde para los títulos de equipo */
-    margin-top: 0;
-    margin-bottom: 10px;
+
+function displayTeams(teams) {
+    teamsDisplay.innerHTML = '';
+    if (teams.length === 0 && players.length > 0) { // Si no hay equipos formados pero sí jugadores, mostrar solo la lista de jugadores pendientes
+        return;
+    }
+    
+    teams.forEach((team, index) => {
+        const teamBox = document.createElement('div');
+        teamBox.className = 'team-box';
+        const teamTitle = document.createElement('h3');
+        teamTitle.textContent = `Equipo ${index + 1}`;
+        teamBox.appendChild(teamTitle);
+
+        const teamList = document.createElement('ul');
+        team.forEach(player => {
+            const playerItem = document.createElement('li');
+            playerItem.textContent = player;
+            teamList.appendChild(playerItem);
+        });
+        teamBox.appendChild(teamList);
+        teamsDisplay.appendChild(teamBox);
+    });
+
+    // Manejar jugadores sobrantes (si no forman un equipo completo y el sorteo terminó)
+    if (remainingPlayersForSpin.length > 0 && players.length > 0 && teams.length > 0 && teamsFormed.some(t => t.length > 0)) { // Asegurarse que haya jugadores y ya se haya empezado a formar equipos
+        const leftoverBox = document.createElement('div');
+        leftoverBox.className = 'team-box';
+        const leftoverTitle = document.createElement('h3');
+        leftoverTitle.textContent = 'Jugadores en Espera';
+        leftoverBox.appendChild(leftoverTitle);
+        const leftoverList = document.createElement('ul');
+        remainingPlayersForSpin.forEach(player => {
+            const playerItem = document.createElement('li');
+            playerItem.textContent = player;
+            leftoverList.appendChild(playerItem);
+        });
+        leftoverBox.appendChild(leftoverList);
+        teamsDisplay.appendChild(leftoverBox);
+    } else if (players.length > 0 && teams.length === 0) {
+        // No hacer nada si no se ha iniciado el sorteo y no hay equipos
+    }
 }
 
-.team-box ul {
-    background-color: transparent;
-    border: none;
-    max-height: unset;
-    overflow-y: unset;
+
+// --- Algoritmo de Fisher-Yates para mezclar arrays ---
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }
 
-.team-box ul li {
-    border-bottom: 1px dashed #444466;
-    padding: 5px 0;
-    justify-content: center;
-}
-.team-box ul li:last-child {
-    border-bottom: none;
-}
 
-/* --- Estilos de la Ruleta --- */
-.roulette-container {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    border-radius: 50%;
-    border: 5px solid #8be9fd; /* Borde de la ruleta */
-    margin: 30px auto 20px auto;
-    overflow: hidden; /* Esconde lo que se sale del círculo */
-}
+// --- Event Listeners ---
+addPlayerBtn.addEventListener('click', addPlayer);
+playerInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        addPlayer();
+    }
+});
+clearPlayersBtn.addEventListener('click', clearPlayers);
 
-.roulette-wheel {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    transition: transform 4s cubic-bezier(0.2, 0.9, 0.3, 1); /* Animación de giro suave */
-    /* La rotación inicial se establecerá en JS */
-}
+modeButtons.forEach(button => {
+    button.addEventListener('click', (event) => {
+        const mode = event.target.dataset.mode;
+        let playersPerTeam = 0;
+        if (mode === '1v1') playersPerTeam = 1;
+        else if (mode === '2v2') playersPerTeam = 2;
+        else if (mode === '3v3') playersPerTeam = 3;
+        
+        startTeamFormation(playersPerTeam);
+    });
+});
 
-.roulette-segment {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 50%; /* Mitad del ancho del contenedor */
-    height: 50%; /* Mitad del alto del contenedor */
-    transform-origin: 0% 100%; /* Punto de pivote en el centro del círculo */
-    /* background-color: rgba(255, 255, 255, 0.1);  Esto lo estableceremos con JS */
-    border: 1px solid #444466;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    color: #e0e0e0;
-    font-size: 0.9em;
-    font-weight: bold;
-    text-align: center;
-    white-space: nowrap; /* Evitar que el texto salte de línea */
-    text-overflow: ellipsis; /* Puntos suspensivos si el texto es muy largo */
-    padding-left: 5%; /* Pequeño padding para que no choque con el borde */
-    box-sizing: border-box; /* Incluir padding en el tamaño */
-    transform: rotate(var(--angle)) skewY(var(--skew)); /* Ángulos dinámicos por JS */
-}
+spinBtn.addEventListener('click', spinRoulette);
 
-.roulette-pointer {
-    position: absolute;
-    top: -15px; /* Arriba de la ruleta */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 15px solid transparent;
-    border-right: 15px solid transparent;
-    border-bottom: 30px solid #bd1e51; /* Triángulo rojo del puntero */
-    z-index: 10;
-}
+// Inicializar
+renderPlayerList();

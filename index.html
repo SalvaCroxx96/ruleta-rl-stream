@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ruleta Rocket League - Mejorada</title>
+    <title>Ruleta Rocket League</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Ruleta de Equipos de Rocket League</h1>
+        <h1>Ruleta de IDs de Rocket League</h1>
 
         <div class="input-section">
-            <input type="text" id="playerInput" placeholder="Ingresa tu ID de Rocket League">
-            <button id="addPlayerBtn">Agregar Jugador</button>
+            <input type="text" id="playerInput" placeholder="Ingresa un ID de Rocket League">
+            <button id="addPlayerBtn">Agregar ID</button>
         </div>
 
         <div class="players-list-section">
@@ -21,30 +22,20 @@
             <button id="clearPlayersBtn" class="clear-button">Limpiar Lista</button>
         </div>
         
-        <div class="mode-selection-section">
-            <h2>Seleccionar Modo de Juego:</h2>
-            <button class="mode-button" data-mode="1v1">1v1</button>
-            <button class="mode-button" data-mode="2v2">2v2</button>
-            <button class="mode-button" data-mode="3v3">3v3</button>
-            <p class="mode-warning">Se necesitan suficientes jugadores para el modo seleccionado.</p>
-        </div>
-
         <div class="roulette-section">
-            <h2>Girar la Ruleta:</h2>
+            <h2>Girar la Ruleta</h2>
             <div class="roulette-container">
                 <div class="roulette-pointer"></div>
-                <div id="rouletteWheel" class="roulette-wheel">
-                    </div>
+                <canvas id="rouletteCanvas"></canvas> </div>
+            <button id="spinButton" class="main-spin-button">GIRAR RULETA</button>
+            <div id="winnerDisplay" class="winner-display">
+                ¡Gira para ver al ganador!
             </div>
-            <button id="spinBtn" class="spin-button" style="display: none;">¡GIRAR!</button>
-            <p id="spinResult" class="spin-result"></p>
+            <p class="result-warning" style="display: none;">¡No hay suficientes IDs en la lista para girar!</p>
         </div>
-        
-        <div class="results-section">
-            <h2>Equipos Seleccionados:</h2>
-            <div id="teamsDisplay">
-                </div>
-            <p class="result-warning" style="display: none;">¡No hay suficientes jugadores para este modo!</p>
+
+        <div class="results-section" style="display: none;"> <h2>Equipos Seleccionados:</h2>
+            <div id="teamsDisplay"></div>
         </div>
     </div>
 

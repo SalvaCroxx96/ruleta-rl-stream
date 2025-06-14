@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruleta Rocket League</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Ruleta de Equipos de Rocket League</h1>
+
+        <div class="input-section">
+            <input type="text" id="playerInput" placeholder="Ingresa tu ID de Rocket League">
+            <button id="addPlayerBtn">Agregar Jugador</button>
+        </div>
+
+        <div class="players-list-section">
+            <h2>Participantes:</h2>
+            <ul id="playerList"></ul>
+            <button id="clearPlayersBtn" class="clear-button">Limpiar Lista</button>
+        </div>
+        
+        <div class="mode-selection-section">
+            <h2>Seleccionar Modo de Juego:</h2>
+            <button class="mode-button" data-mode="1v1">1v1</button>
+            <button class="mode-button" data-mode="2v2">2v2</button>
+            <button class="mode-button" data-mode="3v3">3v3</button>
+            <p class="mode-warning">Se necesitan suficientes jugadores para el modo seleccionado.</p>
+        </div>
+
+        <div class="results-section">
+            <h2>Equipos Seleccionados:</h2>
+            <div id="teamsDisplay">
+                </div>
+            <p class="result-warning" style="display: none;">¡No hay suficientes jugadores para este modo!</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

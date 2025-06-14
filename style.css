@@ -1,0 +1,158 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #1a1a2e; /* Fondo oscuro similar a un stream */
+    color: #e0e0e0; /* Texto claro */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    background-color: #2a2a4a; /* Contenedor más claro */
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    width: 100%;
+    max-width: 700px;
+}
+
+h1, h2 {
+    color: #8be9fd; /* Azul claro para títulos */
+    margin-bottom: 20px;
+}
+
+.input-section, .mode-selection-section, .players-list-section, .results-section {
+    margin-bottom: 30px;
+    border: 1px solid #444466;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #3a3a5a;
+}
+
+input[type="text"] {
+    padding: 12px 15px;
+    border: none;
+    border-radius: 5px;
+    margin-right: 10px;
+    background-color: #1f1f3f;
+    color: #e0e0e0;
+    width: calc(70% - 20px);
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #bd1e51; /* Rojo vibrante */
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #e63946;
+}
+
+.mode-button {
+    background-color: #50fa7b; /* Verde para los modos */
+    margin: 5px;
+}
+
+.mode-button:hover {
+    background-color: #69f0ae;
+}
+
+.clear-button {
+    background-color: #ff7f50; /* Naranja para limpiar */
+    margin-top: 15px;
+}
+
+.clear-button:hover {
+    background-color: #ffa07a;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #1f1f3f;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+
+ul li {
+    padding: 10px 15px;
+    border-bottom: 1px solid #444466;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+ul li:last-child {
+    border-bottom: none;
+}
+
+ul li button {
+    background-color: #e74c3c; /* Rojo para eliminar */
+    padding: 5px 10px;
+    font-size: 14px;
+    margin-left: 10px;
+}
+
+ul li button:hover {
+    background-color: #c0392b;
+}
+
+.mode-warning, .result-warning {
+    color: #ffcc00; /* Amarillo de advertencia */
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+#teamsDisplay {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.team-box {
+    background-color: #1f1f3f;
+    border: 2px solid #bd1e51;
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 150px;
+    max-width: 200px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.team-box h3 {
+    color: #8be9fd;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.team-box ul {
+    background-color: transparent;
+    border: none;
+    max-height: unset;
+    overflow-y: unset;
+}
+
+.team-box ul li {
+    border-bottom: 1px dashed #444466;
+    padding: 5px 0;
+    justify-content: center;
+}
+.team-box ul li:last-child {
+    border-bottom: none;
+}

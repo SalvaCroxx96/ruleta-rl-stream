@@ -1,289 +1,223 @@
+// --- Elementos del DOM existentes (se mantienen) ---
 const playerInput = document.getElementById('playerInput');
 const addPlayerBtn = document.getElementById('addPlayerBtn');
 const playerListUl = document.getElementById('playerList');
 const clearPlayersBtn = document.getElementById('clearPlayersBtn');
-const modeButtons = document.querySelectorAll('.mode-button');
-const teamsDisplay = document.getElementById('teamsDisplay');
-const resultWarning = document.querySelector('.result-warning');
+// const modeButtons = document.querySelectorAll('.mode-button'); // Ya no se usan directamente en esta versión
+// const teamsDisplay = document.getElementById('teamsDisplay'); // Ocultado en HTML para enfoque en ruleta
+const resultWarning = document.querySelector('.result-warning'); // Se usa para la ruleta ahora
 
-const rouletteWheel = document.getElementById('rouletteWheel');
-const spinBtn = document.getElementById('spinBtn');
-const spinResultDisplay = document.getElementById('spinResult');
+// --- Nuevos elementos del DOM para la Ruleta ---
+const spinButton = document.getElementById('spinButton');
+const winnerDisplay = document.getElementById('winnerDisplay');
+const canvas = document.getElementById('rouletteCanvas');
+const ctx = canvas.getContext('2d');
+const roulettePointer = document.querySelector('.roulette-pointer');
 
 let players = []; // Array para almacenar los IDs de los jugadores
-let remainingPlayersForSpin = []; // Copia para la ruleta
-let currentModePlayersPerTeam = 0; // Para saber cuántos jugadores por equipo necesitamos
-let currentTeamBeingFormed = 0; // Para llevar la cuenta de qué equipo se está formando
-let currentTeamMembers = []; // Para almacenar los miembros del equipo actual
-let teamsFormed = []; // Para almacenar todos los equipos finales
 
-const colors = ['#bd1e51', '#50fa7b', '#8be9fd', '#ffcc00', '#ff7f50', '#a020f0']; // Colores para los segmentos
+// --- Configuración de la Ruleta ---
+const wheelSize = 400; // Coincide con el CSS
+const centerX = wheelSize / 2;
+const centerY = wheelSize / 2;
+const radius = wheelSize / 2;
 
-// --- Funciones para gestionar la lista de jugadores ---
+// Colores para los segmentos de la ruleta (puedes añadir más si tienes muchos jugadores)
+const segmentColors = [
+    '#FF6347', // Tomato
+    '#6A5ACD', // SlateBlue
+    '#3CB371', // MediumSeaGreen
+    '#FFD700', // Gold
+    '#00BFFF', // DeepSkyBlue
+    '#FF69B4', // HotPink
+    '#9370DB', // MediumPurple
+    '#ADFF2F', // GreenYellow
+    '#FF4500', // OrangeRed
+    '#87CEEB'  // SkyBlue
+];
+
+let currentRotation = 0; // Rotación actual de la ruleta
+let spinning = false; // Estado para evitar giros múltiples
+
+// --- Audio (Necesitarás archivos de sonido. Cárgalos aquí) ---
+const spinSound = new Audio('sounds/spin-sound.mp3'); // Crea una carpeta 'sounds' y pon tu archivo .mp3
+const winSound = new Audio('sounds/win-sound.mp3');   // Crea una carpeta 'sounds' y pon tu archivo .mp3
+
+// Ajustar el volumen (opcional)
+spinSound.volume = 0.5;
+winSound.volume = 0.7;
+
+// --- Funciones para gestionar la lista de jugadores (adaptadas) ---
 
 function addPlayer() {
-    const playerName = playerInput.value.trim(); // .trim() quita espacios al inicio/final
-    if (playerName && !players.includes(playerName)) { // Asegura que no esté vacío y no sea repetido
+    const playerName = playerInput.value.trim();
+    if (playerName && !players.includes(playerName)) {
         players.push(playerName);
         renderPlayerList();
-        playerInput.value = ''; // Limpiar el input después de añadir
-        resultWarning.style.display = 'none'; // Ocultar advertencia si estaba visible
-        spinBtn.style.display = 'none'; // Ocultar botón girar si se añade jugador después de elegir modo
-        teamsDisplay.innerHTML = ''; // Limpiar equipos anteriores
-        spinResultDisplay.textContent = '';
-        rouletteWheel.innerHTML = ''; // Limpiar segmentos de ruleta
-        resetGameVariables(); // Reiniciar variables de juego
+        drawRoulette(); // Redibujar la ruleta al añadir un jugador
+        playerInput.value = '';
+        resultWarning.style.display = 'none';
     } else if (players.includes(playerName)) {
         alert('¡Ese ID ya está en la lista!');
     }
 }
 
+
 function renderPlayerList() {
-    playerListUl.innerHTML = ''; // Limpiar la lista actual
+    playerListUl.innerHTML = '';
     players.forEach((player, index) => {
         const listItem = document.createElement('li');
         listItem.textContent = player;
+
         const removeButton = document.createElement('button');
         removeButton.textContent = 'X';
-        removeButton.onclick = () => removePlayer(index); // Asigna función para eliminar
+        removeButton.onclick = () => removePlayer(index);
+        
         listItem.appendChild(removeButton);
         playerListUl.appendChild(listItem);
     });
 }
 
+
 function removePlayer(index) {
-    players.splice(index, 1); // Elimina el elemento en la posición 'index'
-    renderPlayerList(); // Vuelve a renderizar la lista
-    spinBtn.style.display = 'none'; // Ocultar botón girar si se elimina jugador después de elegir modo
-    teamsDisplay.innerHTML = ''; // Limpiar equipos anteriores
-    spinResultDisplay.textContent = '';
-    rouletteWheel.innerHTML = ''; // Limpiar segmentos de ruleta
-    resetGameVariables(); // Reiniciar variables de juego
+    players.splice(index, 1);
+    renderPlayerList();
+    drawRoulette(); // Redibujar la ruleta al eliminar un jugador
+    resultWarning.style.display = 'none';
 }
+
 
 function clearPlayers() {
     if (confirm('¿Estás seguro de que quieres limpiar la lista de jugadores?')) {
         players = [];
         renderPlayerList();
-        teamsDisplay.innerHTML = '';
+        drawRoulette(); // Redibujar la ruleta vacía
+        winnerDisplay.textContent = '¡Gira para ver al ganador!'; // Resetear mensaje del ganador
         resultWarning.style.display = 'none';
-        spinBtn.style.display = 'none';
-        spinResultDisplay.textContent = '';
-        rouletteWheel.innerHTML = '';
-        resetGameVariables(); // Reiniciar variables de juego
     }
 }
 
-function resetGameVariables() {
-    remainingPlayersForSpin = [];
-    currentModePlayersPerTeam = 0;
-    currentTeamBeingFormed = 0;
-    currentTeamMembers = [];
-    teamsFormed = [];
-    displayTeams(teamsFormed); // Limpia la visualización de equipos (con un array vacío)
-}
 
-// --- Lógica de la Ruleta Gráfica y Formación de Equipos ---
-
-function generateRouletteWheel() {
-    rouletteWheel.innerHTML = ''; // Limpiar segmentos anteriores
-    if (remainingPlayersForSpin.length === 0) {
-        spinBtn.style.display = 'none';
+// --- Funciones para Dibujar la Ruleta en Canvas ---
+function drawRoulette() {
+    if (players.length === 0) {
+        ctx.clearRect(0, 0, wheelSize, wheelSize); // Limpiar el canvas si no hay jugadores
         return;
     }
 
-    const segmentCount = remainingPlayersForSpin.length;
-    const segmentAngle = 360 / segmentCount;
-    const skewY = 90 - segmentAngle; // Ángulo para 'aplastar' el triángulo
+    const arcSize = 2 * Math.PI / players.length; // Tamaño del arco para cada jugador
 
-    remainingPlayersForSpin.forEach((player, index) => {
-        const segment = document.createElement('div');
-        segment.className = 'roulette-segment';
-        segment.textContent = player;
-        
-        // Calcular ángulo y color para cada segmento
-        const rotation = index * segmentAngle;
-        segment.style.setProperty('--angle', `${rotation}deg`);
-        segment.style.setProperty('--skew', `${skewY}deg`);
-        segment.style.backgroundColor = colors[index % colors.length]; // Ciclo de colores
+    ctx.clearRect(0, 0, wheelSize, wheelSize); // Limpiar el canvas antes de dibujar
+    
+    players.forEach((player, index) => {
+        const startAngle = index * arcSize;
+        const endAngle = (index + 1) * arcSize;
+        const color = segmentColors[index % segmentColors.length]; // Ciclo de colores
 
-        rouletteWheel.appendChild(segment);
+        // Dibujar el segmento
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#333'; // Borde para los segmentos
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Dibujar el texto del jugador
+        ctx.save(); // Guarda el estado actual del canvas
+        ctx.translate(centerX, centerY); // Mueve el origen al centro
+        ctx.rotate(startAngle + arcSize / 2); // Rota al centro del segmento
+        ctx.textAlign = 'right'; // Alinea el texto a la derecha del arco
+        ctx.fillStyle = '#fff'; // Color del texto
+        ctx.font = 'bold 16px Arial'; // Fuente y tamaño
+
+        // Calcular la posición del texto para que no quede muy cerca del centro
+        const textRadius = radius * 0.75; // Ajusta este valor para acercar/alejar el texto del centro
+        ctx.fillText(player, textRadius, 5); // Dibuja el texto
+
+        ctx.restore(); // Restaura el estado del canvas
     });
-
-    spinBtn.style.display = 'block'; // Mostrar el botón de girar
 }
 
-async function spinRoulette() {
-    if (remainingPlayersForSpin.length === 0) {
-        spinResultDisplay.textContent = 'No hay más jugadores para seleccionar.';
-        spinBtn.style.display = 'none';
-        return;
-    }
-
-    spinBtn.disabled = true; // Deshabilitar botón durante el giro
-
-    const selectedIndex = Math.floor(Math.random() * remainingPlayersForSpin.length);
-    const selectedPlayer = remainingPlayersForSpin[selectedIndex];
-
-    // Calcula el ángulo de giro final para que el puntero apunte al jugador seleccionado
-    // Asegura que gire varias veces (ej: 5 vueltas completas) + el ángulo exacto.
-    // Se añade la mitad del ángulo del segmento para que apunte al centro del mismo.
-    const totalRotation = (360 * 5) + (360 - (selectedIndex * (360 / remainingPlayersForSpin.length) + (360 / remainingPlayersForSpin.length) / 2));
-    
-    rouletteWheel.style.transition = 'transform 4s cubic-bezier(0.2, 0.9, 0.3, 1)';
-    rouletteWheel.style.transform = `rotate(${totalRotation}deg)`;
-
-    spinResultDisplay.textContent = 'Girando...';
-
-    // Esperar a que la animación termine
-    await new Promise(resolve => setTimeout(resolve, 4000)); 
-    
-    spinResultDisplay.textContent = `¡Seleccionado: ${selectedPlayer}!`;
-
-    // Añadir al jugador al equipo actual
-    currentTeamMembers.push(selectedPlayer);
-    
-    // Eliminar jugador de la lista de pendientes para la ruleta
-    remainingPlayersForSpin.splice(selectedIndex, 1);
-
-    // Actualizar la visualización de equipos
-    updateTeamDisplay();
-
-    // Reiniciar la ruleta para el siguiente giro
-    rouletteWheel.style.transition = 'none'; // Quitar transición para reseteo instantáneo
-    rouletteWheel.style.transform = 'rotate(0deg)'; // Resetear a la posición original antes de regenerar
-    setTimeout(() => { // Pequeño retraso para que el navegador aplique el reset
-        generateRouletteWheel(); // Regenera los segmentos con los jugadores restantes
-        spinBtn.disabled = false; // Habilitar botón para el siguiente giro
-        if (remainingPlayersForSpin.length === 0) {
-            spinResultDisplay.textContent = '¡Todos los jugadores han sido asignados!';
-            spinBtn.style.display = 'none';
-        }
-    }, 50);
-}
-
-
-function startTeamFormation(playersPerTeam) {
-    currentModePlayersPerTeam = playersPerTeam;
-    currentTeamBeingFormed = 1;
-    currentTeamMembers = [];
-    teamsFormed = []; // Limpiar equipos formados anteriormente
-    teamsDisplay.innerHTML = ''; // Limpiar display de equipos
-
-    if (players.length < playersPerTeam) {
-        resultWarning.textContent = `¡Necesitas al menos ${playersPerTeam} jugador(es) para el modo ${playersPerTeam}v${playersPerTeam}!`;
+// --- Lógica de Giro de la Ruleta con GSAP ---
+function spinRoulette() {
+    if (players.length === 0) {
+        resultWarning.textContent = '¡Agrega IDs a la lista para girar la ruleta!';
         resultWarning.style.display = 'block';
-        spinBtn.style.display = 'none';
-        rouletteWheel.innerHTML = '';
-        spinResultDisplay.textContent = '';
         return;
     }
-    resultWarning.style.display = 'none';
+
+    if (spinning) return; // Evitar giros múltiples
+    spinning = true;
+    spinButton.disabled = true; // Deshabilitar botón durante el giro
+    winnerDisplay.textContent = '¡Girando...!';
+    resultWarning.style.display = 'none'; // Ocultar advertencia
+
+    spinSound.play(); // Reproducir sonido de giro
+
+    // Calcular un ángulo aleatorio para que se detenga en un jugador específico
+    const totalPlayers = players.length;
+    const degreesPerSegment = 360 / totalPlayers;
     
-    // Copiar la lista original de jugadores y mezclarla
-    remainingPlayersForSpin = shuffleArray([...players]); 
-    generateRouletteWheel(); // Genera la ruleta con todos los jugadores disponibles
-    spinResultDisplay.textContent = `Gira para el Equipo ${currentTeamBeingFormed}. Jugadores restantes: ${remainingPlayersForSpin.length}`;
-}
+    // Seleccionar un índice ganador aleatorio
+    const winnerIndex = Math.floor(Math.random() * totalPlayers);
+    const winnerPlayer = players[winnerIndex];
 
-function updateTeamDisplay() {
-    if (currentTeamMembers.length === currentModePlayersPerTeam || remainingPlayersForSpin.length === 0) {
-        // Si el equipo actual está completo o no quedan más jugadores, añadirlo a los equipos formados
-        if (currentTeamMembers.length > 0) {
-            teamsFormed.push([...currentTeamMembers]); // Añadir una copia del equipo
-        }
-        currentTeamMembers = []; // Resetear para el siguiente equipo
-
-        displayTeams(teamsFormed); // Actualiza la visualización de todos los equipos
-
-        if (remainingPlayersForSpin.length > 0) {
-            currentTeamBeingFormed++;
-            spinResultDisplay.textContent = `Gira para el Equipo ${currentTeamBeingFormed}. Jugadores restantes: ${remainingPlayersForSpin.length}`;
-        } else {
-            spinResultDisplay.textContent = '¡Todos los jugadores han sido asignados a equipos!';
-            spinBtn.style.display = 'none';
-        }
-    } else {
-         spinResultDisplay.textContent = `Gira para el Equipo ${currentTeamBeingFormed}. Faltan ${currentModePlayersPerTeam - currentTeamMembers.length} jugador(es). Jugadores restantes: ${remainingPlayersForSpin.length}`;
-    }
-}
-
-
-function displayTeams(teams) {
-    teamsDisplay.innerHTML = '';
-    // Esta condición asegura que no mostremos la sección de equipos si aún no se ha iniciado el sorteo y no hay equipos formados
-    if (teams.length === 0 && players.length > 0 && currentModePlayersPerTeam === 0) { 
-        return; 
-    }
+    // Calcular el ángulo de parada objetivo para el ganador
+    // Ajustamos para que el puntero apunte al centro del segmento ganador
+    // Restamos 90 grados para que la punta del puntero (que apunta hacia arriba)
+    // apunte al centro del segmento
+    const targetAngleOffset = (totalPlayers - 1 - winnerIndex) * degreesPerSegment + (degreesPerSegment / 2);
     
-    teams.forEach((team, index) => {
-        const teamBox = document.createElement('div');
-        teamBox.className = 'team-box';
-        const teamTitle = document.createElement('h3');
-        teamTitle.textContent = `Equipo ${index + 1}`;
-        teamBox.appendChild(teamTitle);
+    // Añadimos múltiples giros completos para un efecto más dramático
+    const extraRotations = 5 * 360; // 5 giros completos
+    const targetRotation = extraRotations + targetAngleOffset;
 
-        const teamList = document.createElement('ul');
-        team.forEach(player => {
-            const playerItem = document.createElement('li');
-            playerItem.textContent = player;
-            teamList.appendChild(playerItem);
-        });
-        teamBox.appendChild(teamList);
-        teamsDisplay.appendChild(teamBox);
+    // Animación con GSAP
+    gsap.to(canvas, {
+        rotation: targetRotation,
+        duration: 5, // Duración del giro en segundos
+        ease: 'power4.out', // Tipo de easing para desaceleración suave
+        onUpdate: () => {
+            // Actualizar la rotación del canvas para que el puntero siempre apunte
+            canvas.style.transform = `rotate(${canvas.rotation}deg)`;
+        },
+        onComplete: () => {
+            spinning = false;
+            spinButton.disabled = false;
+            spinSound.pause(); // Pausar sonido de giro
+            spinSound.currentTime = 0; // Reiniciar para la próxima vez
+            winSound.play(); // Reproducir sonido de victoria
+
+            winnerDisplay.textContent = `¡Ganador: ${winnerPlayer}!`;
+
+            // Resetear la rotación del canvas visualmente sin afectar la lógica
+            // para futuras animaciones (GSAP maneja esto internamente si se usa .to() de nuevo)
+            currentRotation = targetRotation % 360; 
+            if (currentRotation < 0) currentRotation += 360; // Asegurar valor positivo
+        }
     });
-
-    // Manejar jugadores sobrantes (si no forman un equipo completo y el sorteo terminó)
-    if (remainingPlayersForSpin.length > 0 && players.length > 0 && teams.length > 0 && teamsFormed.some(t => t.length > 0)) { // Asegurarse que haya jugadores y ya se haya empezado a formar equipos
-        const leftoverBox = document.createElement('div');
-        leftoverBox.className = 'team-box';
-        const leftoverTitle = document.createElement('h3');
-        leftoverTitle.textContent = 'Jugadores en Espera';
-        leftoverBox.appendChild(leftoverTitle);
-        const leftoverList = document.createElement('ul');
-        remainingPlayersForSpin.forEach(player => {
-            const playerItem = document.createElement('li');
-            playerItem.textContent = player;
-            leftoverList.appendChild(playerItem);
-        });
-        leftoverBox.appendChild(leftoverList);
-        teamsDisplay.appendChild(leftoverBox);
-    } 
 }
-
-
-// --- Algoritmo de Fisher-Yates para mezclar arrays ---
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-
 
 // --- Event Listeners ---
+
 addPlayerBtn.addEventListener('click', addPlayer);
+
+
 playerInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
         addPlayer();
     }
 });
+
+
 clearPlayersBtn.addEventListener('click', clearPlayers);
 
-modeButtons.forEach(button => {
-    button.addEventListener('click', (event) => {
-        const mode = event.target.dataset.mode;
-        let playersPerTeam = 0;
-        if (mode === '1v1') playersPerTeam = 1;
-        else if (mode === '2v2') playersPerTeam = 2;
-        else if (mode === '3v3') playersPerTeam = 3;
-        
-        startTeamFormation(playersPerTeam);
-    });
-});
 
-spinBtn.addEventListener('click', spinRoulette);
+spinButton.addEventListener('click', spinRoulette); // Nuevo evento para el botón de giro
 
-// Inicializar la lista de jugadores al cargar la página
-renderPlayerList();
+// --- Inicialización ---
+renderPlayerList(); // Renderiza la lista al cargar la página
+drawRoulette();     // Dibuja la ruleta inicial al cargar la página

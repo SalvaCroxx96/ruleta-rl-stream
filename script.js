@@ -5,6 +5,7 @@ const clearPlayersBtn = document.getElementById('clearPlayersBtn');
 const modeButtons = document.querySelectorAll('.mode-button');
 const teamsDisplay = document.getElementById('teamsDisplay');
 const resultWarning = document.querySelector('.result-warning');
+
 const rouletteWheel = document.getElementById('rouletteWheel');
 const spinBtn = document.getElementById('spinBtn');
 const spinResultDisplay = document.getElementById('spinResult');
@@ -21,43 +22,43 @@ const colors = ['#bd1e51', '#50fa7b', '#8be9fd', '#ffcc00', '#ff7f50', '#a020f0'
 // --- Funciones para gestionar la lista de jugadores ---
 
 function addPlayer() {
-    const playerName = playerInput.value.trim();
-    if (playerName && !players.includes(playerName)) {
+    const playerName = playerInput.value.trim(); // .trim() quita espacios al inicio/final
+    if (playerName && !players.includes(playerName)) { // Asegura que no esté vacío y no sea repetido
         players.push(playerName);
         renderPlayerList();
-        playerInput.value = '';
-        resultWarning.style.display = 'none';
+        playerInput.value = ''; // Limpiar el input después de añadir
+        resultWarning.style.display = 'none'; // Ocultar advertencia si estaba visible
         spinBtn.style.display = 'none'; // Ocultar botón girar si se añade jugador después de elegir modo
         teamsDisplay.innerHTML = ''; // Limpiar equipos anteriores
         spinResultDisplay.textContent = '';
         rouletteWheel.innerHTML = ''; // Limpiar segmentos de ruleta
-        resetGameVariables();
+        resetGameVariables(); // Reiniciar variables de juego
     } else if (players.includes(playerName)) {
         alert('¡Ese ID ya está en la lista!');
     }
 }
 
 function renderPlayerList() {
-    playerListUl.innerHTML = '';
+    playerListUl.innerHTML = ''; // Limpiar la lista actual
     players.forEach((player, index) => {
         const listItem = document.createElement('li');
         listItem.textContent = player;
         const removeButton = document.createElement('button');
         removeButton.textContent = 'X';
-        removeButton.onclick = () => removePlayer(index);
+        removeButton.onclick = () => removePlayer(index); // Asigna función para eliminar
         listItem.appendChild(removeButton);
         playerListUl.appendChild(listItem);
     });
 }
 
 function removePlayer(index) {
-    players.splice(index, 1);
-    renderPlayerList();
+    players.splice(index, 1); // Elimina el elemento en la posición 'index'
+    renderPlayerList(); // Vuelve a renderizar la lista
     spinBtn.style.display = 'none'; // Ocultar botón girar si se elimina jugador después de elegir modo
     teamsDisplay.innerHTML = ''; // Limpiar equipos anteriores
     spinResultDisplay.textContent = '';
     rouletteWheel.innerHTML = ''; // Limpiar segmentos de ruleta
-    resetGameVariables();
+    resetGameVariables(); // Reiniciar variables de juego
 }
 
 function clearPlayers() {
@@ -69,7 +70,7 @@ function clearPlayers() {
         spinBtn.style.display = 'none';
         spinResultDisplay.textContent = '';
         rouletteWheel.innerHTML = '';
-        resetGameVariables();
+        resetGameVariables(); // Reiniciar variables de juego
     }
 }
 
@@ -79,7 +80,7 @@ function resetGameVariables() {
     currentTeamBeingFormed = 0;
     currentTeamMembers = [];
     teamsFormed = [];
-    displayTeams(teamsFormed); // Limpia la visualización de equipos
+    displayTeams(teamsFormed); // Limpia la visualización de equipos (con un array vacío)
 }
 
 // --- Lógica de la Ruleta Gráfica y Formación de Equipos ---
@@ -126,6 +127,7 @@ async function spinRoulette() {
 
     // Calcula el ángulo de giro final para que el puntero apunte al jugador seleccionado
     // Asegura que gire varias veces (ej: 5 vueltas completas) + el ángulo exacto.
+    // Se añade la mitad del ángulo del segmento para que apunte al centro del mismo.
     const totalRotation = (360 * 5) + (360 - (selectedIndex * (360 / remainingPlayersForSpin.length) + (360 / remainingPlayersForSpin.length) / 2));
     
     rouletteWheel.style.transition = 'transform 4s cubic-bezier(0.2, 0.9, 0.3, 1)';
@@ -169,7 +171,7 @@ function startTeamFormation(playersPerTeam) {
     teamsDisplay.innerHTML = ''; // Limpiar display de equipos
 
     if (players.length < playersPerTeam) {
-        resultWarning.textContent = `¡Necesitas al menos ${playersPerTeam} jugadores para el modo ${playersPerTeam}v${playersPerTeam}!`;
+        resultWarning.textContent = `¡Necesitas al menos ${playersPerTeam} jugador(es) para el modo ${playersPerTeam}v${playersPerTeam}!`;
         resultWarning.style.display = 'block';
         spinBtn.style.display = 'none';
         rouletteWheel.innerHTML = '';
@@ -209,8 +211,9 @@ function updateTeamDisplay() {
 
 function displayTeams(teams) {
     teamsDisplay.innerHTML = '';
-    if (teams.length === 0 && players.length > 0) { // Si no hay equipos formados pero sí jugadores, mostrar solo la lista de jugadores pendientes
-        return;
+    // Esta condición asegura que no mostremos la sección de equipos si aún no se ha iniciado el sorteo y no hay equipos formados
+    if (teams.length === 0 && players.length > 0 && currentModePlayersPerTeam === 0) { 
+        return; 
     }
     
     teams.forEach((team, index) => {
@@ -245,9 +248,7 @@ function displayTeams(teams) {
         });
         leftoverBox.appendChild(leftoverList);
         teamsDisplay.appendChild(leftoverBox);
-    } else if (players.length > 0 && teams.length === 0) {
-        // No hacer nada si no se ha iniciado el sorteo y no hay equipos
-    }
+    } 
 }
 
 
@@ -284,5 +285,5 @@ modeButtons.forEach(button => {
 
 spinBtn.addEventListener('click', spinRoulette);
 
-// Inicializar
+// Inicializar la lista de jugadores al cargar la página
 renderPlayerList();

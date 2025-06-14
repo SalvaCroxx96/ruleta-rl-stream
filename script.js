@@ -1,211 +1,232 @@
-const playerInput = document.getElementById('playerInput');
-const addPlayerBtn = document.getElementById('addPlayerBtn');
-const playerListUl = document.getElementById('playerList');
-const clearPlayersBtn = document.getElementById('clearPlayersBtn');
-const modeButtons = document.querySelectorAll('.mode-button');
-const teamsDisplay = document.getElementById('teamsDisplay');
-const resultWarning = document.querySelector('.result-warning');
-
-let players = []; // Array para almacenar los IDs de los jugadores
-
-// --- Funciones para gestionar la lista de jugadores ---
-
-// Función para añadir un jugador
-function addPlayer() {
-    const playerName = playerInput.value.trim(); // .trim() quita espacios al inicio/final
-    if (playerName && !players.includes(playerName)) { // Asegura que no esté vacío y no sea repetido
-        players.push(playerName);
-        renderPlayerList();
-        playerInput.value = ''; // Limpiar el input después de añadir
-        resultWarning.style.display = 'none'; // Ocultar advertencia si estaba visible
-    } else if (players.includes(playerName)) {
-        alert('¡Ese ID ya está en la lista!');
-    }
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #1a1a2e; /* Fondo oscuro similar a un stream */
+    color: #e0e0e0; /* Texto claro */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-x: hidden; /* Evitar scroll horizontal por la ruleta */
 }
 
-// Función para renderizar la lista de jugadores en el HTML
-function renderPlayerList() {
-    playerListUl.innerHTML = ''; // Limpiar la lista actual
-    players.forEach((player, index) => {
-        const listItem = document.createElement('li');
-        listItem.textContent = player;
-
-        const removeButton = document.createElement('button');
-        removeButton.textContent = 'X';
-        removeButton.onclick = () => removePlayer(index); // Asigna función para eliminar
-        
-        listItem.appendChild(removeButton);
-        playerListUl.appendChild(listItem);
-    });
+.container {
+    background-color: #2a2a4a; /* Contenedor más claro */
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    width: 100%;
+    max-width: 700px;
 }
 
-// Función para eliminar un jugador
-function removePlayer(index) {
-    players.splice(index, 1); // Elimina el elemento en la posición 'index'
-    renderPlayerList(); // Vuelve a renderizar la lista
+h1, h2 {
+    color: #8be9fd; /* Azul claro para títulos */
+    margin-bottom: 20px;
 }
 
-// Función para limpiar todos los jugadores
-function clearPlayers() {
-    if (confirm('¿Estás seguro de que quieres limpiar la lista de jugadores?')) {
-        players = [];
-        renderPlayerList();
-        teamsDisplay.innerHTML = ''; // También limpia los equipos mostrados
-        resultWarning.style.display = 'none';
-    }
+.input-section, .mode-selection-section, .players-list-section, .results-section, .roulette-section {
+    margin-bottom: 30px;
+    border: 1px solid #444466;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #3a3a5a;
 }
 
-// --- Funciones para la lógica de la ruleta y equipos ---
-
-// Función para mezclar un array (algoritmo Fisher-Yates)
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
+input[type="text"] {
+    padding: 12px 15px;
+    border: none;
+    border-radius: 5px;
+    margin-right: 10px;
+    background-color: #1f1f3f;
+    color: #e0e0e0;
+    width: calc(70% - 20px);
+    box-sizing: border-box;
 }
 
-// Función principal para formar y mostrar los equipos
-function formTeams(playersPerTeam) {
-    teamsDisplay.innerHTML = ''; // Limpiar resultados anteriores
-    resultWarning.style.display = 'none';
-
-    const numPlayersNeeded = players.length;
-    let totalTeams = 0;
-    
-    // Determinar cuántos equipos se formarán y si hay suficientes jugadores
-    if (playersPerTeam === 1) { // 1v1
-        totalTeams = numPlayersNeeded; // Cada jugador es un "equipo"
-        if (numPlayersNeeded < 1) { // Necesita al menos 1 jugador
-             resultWarning.textContent = '¡No hay suficientes jugadores para 1v1!';
-             resultWarning.style.display = 'block';
-             return;
-        }
-    } else if (playersPerTeam === 2) { // 2v2
-        totalTeams = Math.floor(numPlayersNeeded / 2);
-        if (numPlayersNeeded < 2) { // Necesita al menos 2 jugadores
-            resultWarning.textContent = '¡No hay suficientes jugadores para 2v2 (mínimo 2)!';
-            resultWarning.style.display = 'block';
-            return;
-        }
-    } else if (playersPerTeam === 3) { // 3v3
-        totalTeams = Math.floor(numPlayersNeeded / 3);
-        if (numPlayersNeeded < 3) { // Necesita al menos 3 jugadores
-            resultWarning.textContent = '¡No hay suficientes jugadores para 3v3 (mínimo 3)!';
-            resultWarning.style.display = 'block';
-            return;
-        }
-    }
-
-    if (totalTeams === 0) {
-        resultWarning.textContent = '¡No hay suficientes jugadores para formar equipos con este modo!';
-        resultWarning.style.display = 'block';
-        return;
-    }
-
-    // Copiar y mezclar jugadores para el sorteo
-    const shuffledPlayers = shuffleArray([...players]); // Usamos una copia para no modificar el original
-
-    let currentPlayers = [...shuffledPlayers]; // Usamos una copia mutable
-
-    // Mostrar animación básica de "giro" (resaltando jugadores brevemente)
-    const highlightDuration = 100; // ms por jugador
-    let highlightIndex = 0;
-    const highlightInterval = setInterval(() => {
-        if (highlightIndex < players.length) {
-            const playerItems = playerListUl.children;
-            if (playerItems[highlightIndex]) {
-                playerItems[highlightIndex].style.backgroundColor = '#50fa7b'; // Resalta
-                playerItems[highlightIndex].style.transition = 'background-color 0.1s ease';
-            }
-            if (highlightIndex > 0 && playerItems[highlightIndex - 1]) {
-                 playerItems[highlightIndex - 1].style.backgroundColor = ''; // Quita resaltado del anterior
-            }
-            highlightIndex++;
-        } else {
-            clearInterval(highlightInterval);
-            // Retrasar la muestra de resultados para que la animación se vea
-            setTimeout(() => {
-                 displayTeams(currentPlayers, playersPerTeam, totalTeams);
-                 playerListUl.querySelectorAll('li').forEach(li => li.style.backgroundColor = ''); // Quita todos los resaltados
-            }, 500); // Pequeño retraso después de la animación
-        }
-    }, highlightDuration);
+button {
+    background-color: #bd1e51; /* Rojo vibrante */
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
 }
 
-// Función para mostrar los equipos en el HTML
-function displayTeams(shuffledPlayers, playersPerTeam, totalTeams) {
-    teamsDisplay.innerHTML = ''; // Limpiar resultados anteriores
+button:hover {
+    background-color: #e63946;
+}
 
-    let playerCounter = 0;
-    for (let i = 0; i < totalTeams; i++) {
-        const teamBox = document.createElement('div');
-        teamBox.className = 'team-box';
-        const teamTitle = document.createElement('h3');
-        teamTitle.textContent = `Equipo ${i + 1}`;
-        teamBox.appendChild(teamTitle);
+.mode-button {
+    background-color: #50fa7b; /* Verde para los modos */
+    margin: 5px;
+}
 
-        const teamList = document.createElement('ul');
-        for (let j = 0; j < playersPerTeam; j++) {
-            if (playerCounter < shuffledPlayers.length) { // Asegurarse de no ir más allá de los jugadores disponibles
-                const playerItem = document.createElement('li');
-                playerItem.textContent = shuffledPlayers[playerCounter];
-                teamList.appendChild(playerItem);
-                playerCounter++;
-            }
-        }
-        teamBox.appendChild(teamList);
-        teamsDisplay.appendChild(teamBox);
-    }
+.mode-button:hover {
+    background-color: #69f0ae;
+}
 
-    // Manejar jugadores sobrantes (si no forman un equipo completo)
-    if (playerCounter < shuffledPlayers.length) {
-        const leftoverPlayers = shuffledPlayers.slice(playerCounter);
-        const leftoverBox = document.createElement('div');
-        leftoverBox.className = 'team-box';
-        const leftoverTitle = document.createElement('h3');
-        leftoverTitle.textContent = 'Jugadores en Espera';
-        leftoverBox.appendChild(leftoverTitle);
-        const leftoverList = document.createElement('ul');
-        leftoverPlayers.forEach(player => {
-            const playerItem = document.createElement('li');
-            playerItem.textContent = player;
-            leftoverList.appendChild(playerItem);
-        });
-        leftoverBox.appendChild(leftoverList);
-        teamsDisplay.appendChild(leftoverBox);
-    }
+.clear-button {
+    background-color: #ff7f50; /* Naranja para limpiar */
+    margin-top: 15px;
+}
+
+.clear-button:hover {
+    background-color: #ffa07a;
+}
+
+.spin-button {
+    background-color: #bd1e51; /* Rojo vibrante para el botón de girar */
+    margin-top: 20px;
+    padding: 15px 30px;
+    font-size: 1.2em;
+}
+
+.spin-button:hover {
+    background-color: #e63946;
 }
 
 
-// --- Event Listeners (para responder a las interacciones del usuario) ---
+ul {
+    list-style: none;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #1f1f3f;
+    border-radius: 5px;
+    margin-top: 15px;
+}
 
-// Al hacer clic en el botón de agregar jugador
-addPlayerBtn.addEventListener('click', addPlayer);
+ul li {
+    padding: 10px 15px;
+    border-bottom: 1px solid #444466;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-// Al presionar Enter en el campo de texto del jugador
-playerInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-        addPlayer();
-    }
-});
+ul li:last-child {
+    border-bottom: none;
+}
 
-// Al hacer clic en el botón de limpiar lista
-clearPlayersBtn.addEventListener('click', clearPlayers);
+ul li button {
+    background-color: #e74c3c; /* Rojo para eliminar */
+    padding: 5px 10px;
+    font-size: 14px;
+    margin-left: 10px;
+}
 
-// Al hacer clic en los botones de modo de juego
-modeButtons.forEach(button => {
-    button.addEventListener('click', (event) => {
-        const mode = event.target.dataset.mode; // Obtiene el valor del atributo data-mode (ej. "2v2")
-        let playersPerTeam = 0;
-        if (mode === '1v1') playersPerTeam = 1;
-        else if (mode === '2v2') playersPerTeam = 2;
-        else if (mode === '3v3') playersPerTeam = 3;
-        
-        formTeams(playersPerTeam);
-    });
-});
+ul li button:hover {
+    background-color: #c0392b;
+}
 
-// Renderizar la lista inicial (estará vacía al principio)
-renderPlayerList();
+.mode-warning, .result-warning, .spin-result {
+    color: #ffcc00; /* Amarillo de advertencia/resultado */
+    font-weight: bold;
+    margin-top: 10px;
+}
+.spin-result {
+    font-size: 1.5em;
+    color: #50fa7b; /* Verde para el resultado del giro */
+}
+
+
+#teamsDisplay {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.team-box {
+    background-color: #1f1f3f;
+    border: 2px solid #8be9fd; /* Cambiado a azul claro */
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 150px;
+    max-width: 200px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.team-box h3 {
+    color: #50fa7b; /* Verde para los títulos de equipo */
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.team-box ul {
+    background-color: transparent;
+    border: none;
+    max-height: unset;
+    overflow-y: unset;
+}
+
+.team-box ul li {
+    border-bottom: 1px dashed #444466;
+    padding: 5px 0;
+    justify-content: center;
+}
+.team-box ul li:last-child {
+    border-bottom: none;
+}
+
+/* --- Estilos de la Ruleta --- */
+.roulette-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    border: 5px solid #8be9fd; /* Borde de la ruleta */
+    margin: 30px auto 20px auto;
+    overflow: hidden; /* Esconde lo que se sale del círculo */
+}
+
+.roulette-wheel {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transition: transform 4s cubic-bezier(0.2, 0.9, 0.3, 1); /* Animación de giro suave */
+    /* La rotación inicial se establecerá en JS */
+}
+
+.roulette-segment {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%; /* Mitad del ancho del contenedor */
+    height: 50%; /* Mitad del alto del contenedor */
+    transform-origin: 0% 100%; /* Punto de pivote en el centro del círculo */
+    /* background-color: rgba(255, 255, 255, 0.1);  Esto lo estableceremos con JS */
+    border: 1px solid #444466;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: #e0e0e0;
+    font-size: 0.9em;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap; /* Evitar que el texto salte de línea */
+    text-overflow: ellipsis; /* Puntos suspensivos si el texto es muy largo */
+    padding-left: 5%; /* Pequeño padding para que no choque con el borde */
+    box-sizing: border-box; /* Incluir padding en el tamaño */
+    transform: rotate(var(--angle)) skewY(var(--skew)); /* Ángulos dinámicos por JS */
+}
+
+.roulette-pointer {
+    position: absolute;
+    top: -15px; /* Arriba de la ruleta */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-bottom: 30px solid #bd1e51; /* Triángulo rojo del puntero */
+    z-index: 10;
+}

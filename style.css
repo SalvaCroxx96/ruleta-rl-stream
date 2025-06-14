@@ -85,7 +85,7 @@ button:active {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Estilos específicos para los botones de modo de juego (mantener si se vuelven a usar) */
+/* Estilos específicos para los botones de modo de juego (ya no están en HTML, pero se mantienen por si se reincorporan) */
 .mode-button {
     background-color: #50fa7b; /* Verde para los modos */
     margin: 5px;
@@ -231,7 +231,7 @@ ul li button:hover {
     box-sizing: border-box;
 }
 
-/* Estilos para el efecto de resaltado de la lista de jugadores (mantener el anterior) */
+/* Estilos para el efecto de resaltado de la lista de jugadores (se mantiene si se usa) */
 ul li.highlight {
     background-color: #50fa7b; /* Resaltado verde */
     transition: background-color 0.1s ease;

@@ -22,6 +22,10 @@ const centerX = wheelSize / 2;
 const centerY = wheelSize / 2;
 const radius = wheelSize / 2;
 
+// Asegúrate de que el canvas tenga el tamaño correcto
+canvas.width = wheelSize;
+canvas.height = wheelSize;
+
 // Colores para los segmentos de la ruleta (puedes añadir más si tienes muchos jugadores)
 const segmentColors = [
     '#FF6347', // Tomato
@@ -33,15 +37,20 @@ const segmentColors = [
     '#9370DB', // MediumPurple
     '#ADFF2F', // GreenYellow
     '#FF4500', // OrangeRed
-    '#87CEEB'  // SkyBlue
+    '#87CEEB', // SkyBlue
+    '#DA70D6', // Orchid
+    '#CD853F', // Peru
+    '#B0C4DE', // LightSteelBlue
+    '#F08080', // LightCoral
+    '#20B2AA'  // LightSeaGreen
 ];
 
 let currentRotation = 0; // Rotación actual de la ruleta
 let spinning = false; // Estado para evitar giros múltiples
 
-// --- Audio (Necesitarás archivos de sonido. Cárgalos aquí) ---
-const spinSound = new Audio('sounds/spin-sound.mp3'); // Crea una carpeta 'sounds' y pon tu archivo .mp3
-const winSound = new Audio('sounds/win-sound.mp3');   // Crea una carpeta 'sounds' y pon tu archivo .mp3
+// --- Audio (Necesitarás archivos de sonido. Crea una carpeta 'sounds' y pon tus archivos .mp3) ---
+const spinSound = new Audio('sounds/spin-sound.mp3'); 
+const winSound = new Audio('sounds/win-sound.mp3'); 
 
 // Ajustar el volumen (opcional)
 spinSound.volume = 0.5;
@@ -62,7 +71,6 @@ function addPlayer() {
     }
 }
 
-
 function renderPlayerList() {
     playerListUl.innerHTML = '';
     players.forEach((player, index) => {
@@ -78,14 +86,12 @@ function renderPlayerList() {
     });
 }
 
-
 function removePlayer(index) {
     players.splice(index, 1);
     renderPlayerList();
     drawRoulette(); // Redibujar la ruleta al eliminar un jugador
     resultWarning.style.display = 'none';
 }
-
 
 function clearPlayers() {
     if (confirm('¿Estás seguro de que quieres limpiar la lista de jugadores?')) {
@@ -97,17 +103,35 @@ function clearPlayers() {
     }
 }
 
-
 // --- Funciones para Dibujar la Ruleta en Canvas ---
 function drawRoulette() {
+    // Asegurarse de que el canvas esté listo
+    if (!canvas || !ctx) {
+        console.error("Canvas o contexto 2D no disponibles.");
+        return;
+    }
+
+    ctx.clearRect(0, 0, wheelSize, wheelSize); // Limpiar el canvas antes de dibujar
+
     if (players.length === 0) {
-        ctx.clearRect(0, 0, wheelSize, wheelSize); // Limpiar el canvas si no hay jugadores
+        // Dibuja un círculo vacío o un mensaje si no hay jugadores
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = '#444466'; // Color de fondo si está vacía
+        ctx.fill();
+        ctx.strokeStyle = '#8888AA'; // Borde
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#FFF';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Agrega IDs', centerX, centerY - 20);
+        ctx.fillText('para girar', centerX, centerY + 10);
         return;
     }
 
     const arcSize = 2 * Math.PI / players.length; // Tamaño del arco para cada jugador
-
-    ctx.clearRect(0, 0, wheelSize, wheelSize); // Limpiar el canvas antes de dibujar
     
     players.forEach((player, index) => {
         const startAngle = index * arcSize;
@@ -131,7 +155,7 @@ function drawRoulette() {
         ctx.rotate(startAngle + arcSize / 2); // Rota al centro del segmento
         ctx.textAlign = 'right'; // Alinea el texto a la derecha del arco
         ctx.fillStyle = '#fff'; // Color del texto
-        ctx.font = 'bold 16px Arial'; // Fuente y tamaño
+        ctx.font = 'bold 16px Arial'; // Fuente y tamaño (ajustar si es necesario)
 
         // Calcular la posición del texto para que no quede muy cerca del centro
         const textRadius = radius * 0.75; // Ajusta este valor para acercar/alejar el texto del centro
@@ -139,12 +163,26 @@ function drawRoulette() {
 
         ctx.restore(); // Restaura el estado del canvas
     });
+    
+    // Dibuja el círculo central (opcional, para estética)
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 0.15, 0, 2 * Math.PI); // Pequeño círculo central
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fill();
+    ctx.strokeStyle = '#8be9fd';
+    ctx.lineWidth = 3;
+    ctx.stroke();
 }
 
 // --- Lógica de Giro de la Ruleta con GSAP ---
 function spinRoulette() {
     if (players.length === 0) {
         resultWarning.textContent = '¡Agrega IDs a la lista para girar la ruleta!';
+        resultWarning.style.display = 'block';
+        return;
+    }
+    if (players.length === 1) {
+        resultWarning.textContent = '¡Necesitas al menos 2 IDs para un giro significativo!';
         resultWarning.style.display = 'block';
         return;
     }
@@ -155,7 +193,9 @@ function spinRoulette() {
     winnerDisplay.textContent = '¡Girando...!';
     resultWarning.style.display = 'none'; // Ocultar advertencia
 
-    spinSound.play(); // Reproducir sonido de giro
+    // Reproducir y loopear el sonido de giro si quieres que suene mientras gira
+    spinSound.loop = true;
+    spinSound.play(); 
 
     // Calcular un ángulo aleatorio para que se detenga en un jugador específico
     const totalPlayers = players.length;
@@ -167,22 +207,50 @@ function spinRoulette() {
 
     // Calcular el ángulo de parada objetivo para el ganador
     // Ajustamos para que el puntero apunte al centro del segmento ganador
-    // Restamos 90 grados para que la punta del puntero (que apunta hacia arriba)
-    // apunte al centro del segmento
-    const targetAngleOffset = (totalPlayers - 1 - winnerIndex) * degreesPerSegment + (degreesPerSegment / 2);
-    
-    // Añadimos múltiples giros completos para un efecto más dramático
-    const extraRotations = 5 * 360; // 5 giros completos
-    const targetRotation = extraRotations + targetAngleOffset;
+    // La ruleta gira en sentido horario, los ángulos en canvas son en sentido horario.
+    // El puntero está en la parte superior (0 grados).
+    // El primer segmento (índice 0) va de 0 a arcSize.
+    // Si winnerIndex es 0, queremos que el puntero apunte al centro de ese segmento.
+    // Para que el puntero (que está arriba, 90 grados en sistema cartesiano) apunte al centro del segmento:
+    // El centro del segmento 'winnerIndex' está en (winnerIndex * degreesPerSegment) + (degreesPerSegment / 2).
+    // Queremos que el puntero se alinee con este ángulo.
+    // La rotación inicial del canvas es 0. Necesitamos girar de forma que el puntero apunte al segmento deseado.
+    // La compensación de 90 grados es por la convención del canvas (0deg es a la derecha, 90deg es abajo).
+    // Si el puntero está en la parte superior, apunta a -90 grados (o 270 grados).
+    // Por lo tanto, el ángulo final debe ser el opuesto al centro del segmento.
+    const targetAngleForSegmentCenter = (winnerIndex * degreesPerSegment) + (degreesPerSegment / 2);
+    // Para que el puntero de arriba (posición "12 en punto") apunte a este centro, necesitamos una rotación específica.
+    // La rotación deseada es tal que (360 - targetAngleForSegmentCenter) + 90 (compensación del puntero).
+    // Simplificando, para que el puntero apunte al centro del segmento, necesitamos rotar la ruleta
+    // de manera que el centro del segmento quede "debajo" del puntero.
+    // Calculamos el ángulo que debe tener la ruleta para que el segmento ganador esté bajo el puntero.
+    // Sumamos giros completos para hacer la animación más larga y dramática.
+    const extraRotations = 5; // Número de giros completos adicionales
+    const totalSpinDegrees = extraRotations * 360;
 
-    // Animación con GSAP
+    // Calcular el ángulo exacto para que el puntero apunte al centro del segmento ganador
+    // El centro del puntero es la parte superior del círculo (que corresponde a -90 grados o 270 grados en un círculo trigonométrico).
+    // Los segmentos se dibujan desde 0 grados (derecha), en sentido horario.
+    // El ángulo del centro del segmento es `(winnerIndex * degreesPerSegment) + (degreesPerSegment / 2)`.
+    // Queremos que este ángulo esté alineado con el puntero.
+    // Si el puntero está fijo arriba, y la ruleta gira, necesitamos que el ángulo del centro del segmento
+    // se alinee con la parte superior. Esto significa que la ruleta debe girar hasta que ese ángulo esté en 270 grados (sentido horario desde el eje x positivo).
+    // O más sencillo, si el puntero está arriba, y los segmentos empiezan a dibujarse desde la derecha (0 grados),
+    // si el índice 0 debe quedar arriba, la ruleta debe girar 90 grados en sentido anti-horario, o 270 en sentido horario.
+    // Es decir, el ángulo del segmento + la cantidad para que se alinee con el puntero.
+    let finalAngle = 360 - (targetAngleForSegmentCenter - 90); // Ajuste para el puntero arriba
+    finalAngle += totalSpinDegrees; // Añadir giros completos para dramatismo
+
+    // Asegurarse de que la rotación de GSAP se base en la rotación acumulada
+    const currentVisualRotation = parseFloat(gsap.getProperty(canvas, "rotation")); // Obtener rotación actual aplicada por GSAP
+    
     gsap.to(canvas, {
-        rotation: targetRotation,
+        rotation: currentVisualRotation + finalAngle, // Sumar a la rotación actual para continuidad
         duration: 5, // Duración del giro en segundos
         ease: 'power4.out', // Tipo de easing para desaceleración suave
         onUpdate: () => {
-            // Actualizar la rotación del canvas para que el puntero siempre apunte
-            canvas.style.transform = `rotate(${canvas.rotation}deg)`;
+            // GSAP ya maneja la transformación 'rotation' automáticamente en el elemento.
+            // No necesitamos canvas.style.transform si GSAP lo está controlando.
         },
         onComplete: () => {
             spinning = false;
@@ -192,19 +260,14 @@ function spinRoulette() {
             winSound.play(); // Reproducir sonido de victoria
 
             winnerDisplay.textContent = `¡Ganador: ${winnerPlayer}!`;
-
-            // Resetear la rotación del canvas visualmente sin afectar la lógica
-            // para futuras animaciones (GSAP maneja esto internamente si se usa .to() de nuevo)
-            currentRotation = targetRotation % 360; 
-            if (currentRotation < 0) currentRotation += 360; // Asegurar valor positivo
         }
     });
 }
 
+
 // --- Event Listeners ---
 
 addPlayerBtn.addEventListener('click', addPlayer);
-
 
 playerInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
@@ -212,12 +275,20 @@ playerInput.addEventListener('keypress', (event) => {
     }
 });
 
-
 clearPlayersBtn.addEventListener('click', clearPlayers);
 
-
-spinButton.addEventListener('click', spinRoulette); // Nuevo evento para el botón de giro
+spinButton.addEventListener('click', spinRoulette); // Evento para el botón de giro
 
 // --- Inicialización ---
-renderPlayerList(); // Renderiza la lista al cargar la página
-drawRoulette();     // Dibuja la ruleta inicial al cargar la página
+// Asegurarse de que el canvas esté listo antes de dibujar
+window.onload = () => {
+    renderPlayerList(); // Renderiza la lista al cargar la página
+    drawRoulette();     // Dibuja la ruleta inicial al cargar la página
+};
+
+// Asegurar que el canvas tenga el tamaño correcto si se redimensiona la ventana
+window.addEventListener('resize', () => {
+    canvas.width = wheelSize;
+    canvas.height = wheelSize;
+    drawRoulette();
+});

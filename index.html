@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ruleta Rocket League</title>
+    <title>Ruleta Rocket League - Mejorada</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -29,6 +29,17 @@
             <p class="mode-warning">Se necesitan suficientes jugadores para el modo seleccionado.</p>
         </div>
 
+        <div class="roulette-section">
+            <h2>Girar la Ruleta:</h2>
+            <div class="roulette-container">
+                <div class="roulette-pointer"></div>
+                <div id="rouletteWheel" class="roulette-wheel">
+                    </div>
+            </div>
+            <button id="spinBtn" class="spin-button" style="display: none;">¡GIRAR!</button>
+            <p id="spinResult" class="spin-result"></p>
+        </div>
+        
         <div class="results-section">
             <h2>Equipos Seleccionados:</h2>
             <div id="teamsDisplay">
